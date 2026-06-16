@@ -1,7 +1,23 @@
+# Gradle
 .gradle/
 build/
 !gradle/wrapper/gradle-wrapper.jar
+
+# IntelliJ IDEA
 .idea/
 *.iml
+*.ipr
+*.iws
+out/
+
+# Eclipse / VS Code Java (bin = compiled output)
 .vscode/
+bin/
+.classpath
+.project
+.settings/
+
+# Logs & OS files
 *.log
+.DS_Store
+Thumbs.db
