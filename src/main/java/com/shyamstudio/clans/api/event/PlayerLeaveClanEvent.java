@@ -1,10 +1,12 @@
 package com.shyamstudio.clans.api.event;
 
 import com.shyamstudio.clans.api.model.ClanProfile;
+import org.bukkit.command.CommandSender;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -18,14 +20,22 @@ public class PlayerLeaveClanEvent extends Event implements Cancellable {
     private final String playerName;
     private final ClanProfile clan;
     private final Reason reason;
+    private final @Nullable CommandSender actor;
     private boolean cancelled;
 
     public PlayerLeaveClanEvent(@NotNull UUID playerUuid, @NotNull String playerName,
                                 @NotNull ClanProfile clan, @NotNull Reason reason) {
+        this(playerUuid, playerName, clan, reason, null);
+    }
+
+    public PlayerLeaveClanEvent(@NotNull UUID playerUuid, @NotNull String playerName,
+                                @NotNull ClanProfile clan, @NotNull Reason reason,
+                                @Nullable CommandSender actor) {
         this.playerUuid = playerUuid;
         this.playerName = playerName;
         this.clan = clan;
         this.reason = reason;
+        this.actor = actor;
         this.cancelled = false;
     }
 
@@ -43,6 +53,10 @@ public class PlayerLeaveClanEvent extends Event implements Cancellable {
 
     public @NotNull Reason getReason() {
         return reason;
+    }
+
+    public @Nullable CommandSender getActor() {
+        return actor;
     }
 
     @Override

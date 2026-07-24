@@ -1,5 +1,6 @@
 package com.shyamstudio.clans.api.model;
 
+import com.shyamstudio.clans.api.ClansAPI;
 import com.shyamstudio.clans.api.option.ProfileMetric;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -27,8 +28,13 @@ public interface UserProfile {
     @Nullable UUID getClanUuid();
 
     /**
-     * Sets the clan UUID for this user.
+     * Sets the clan UUID directly.
+     *
+     * @deprecated Use membership operations exposed through
+     *             {@link ClansAPI#getClanService()} so validation, events, and
+     *             persistence rules are applied.
      */
+    @Deprecated(since = "1.1.0")
     void setClanUuid(@Nullable UUID clanUuid);
 
     /**
@@ -44,13 +50,21 @@ public interface UserProfile {
     int getStatistic(@NotNull ProfileMetric stat);
 
     /**
-     * Set a specific statistic value.
+     * Sets a statistic directly.
+     *
+     * @deprecated Use validated plugin operations exposed through
+     *             {@link ClansAPI#getClanService()} instead of mutating model state.
      */
+    @Deprecated(since = "1.1.0")
     void setStatistic(@NotNull ProfileMetric stat, int value);
 
     /**
-     * Increment a statistic by a given amount.
+     * Increments a statistic directly.
+     *
+     * @deprecated Use validated plugin operations exposed through
+     *             {@link ClansAPI#getClanService()} instead of mutating model state.
      */
+    @Deprecated(since = "1.1.0")
     default void incrementStatistic(@NotNull ProfileMetric stat, int amount) {
         setStatistic(stat, getStatistic(stat) + amount);
     }

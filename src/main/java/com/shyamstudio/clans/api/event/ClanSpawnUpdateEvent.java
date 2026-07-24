@@ -1,6 +1,7 @@
 package com.shyamstudio.clans.api.event;
 
 import com.shyamstudio.clans.api.model.ClanProfile;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.event.Cancellable;
@@ -9,10 +10,12 @@ import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Objects;
+
 /**
- * Event called when a clan's home location is updated or deleted.
+ * Fired before a clan spawn is set or deleted.
  */
-public class ClanHomeUpdateEvent extends Event implements Cancellable {
+public class ClanSpawnUpdateEvent extends Event implements Cancellable {
 
     private static final HandlerList HANDLER_LIST = new HandlerList();
 
@@ -23,17 +26,31 @@ public class ClanHomeUpdateEvent extends Event implements Cancellable {
 
     private final ClanProfile clan;
     private final @Nullable Location oldLocation;
+    private final CommandSender actor;
     private @Nullable Location newLocation;
-    private final Action action;
-    private final CommandSender sender;
-    private boolean cancelled = false;
+    private Action action;
+    private boolean cancelled;
 
-    public ClanHomeUpdateEvent(@NotNull ClanProfile clan, @Nullable Location oldLocation, @Nullable Location newLocation, @NotNull Action action, @NotNull CommandSender sender) {
-        this.clan = clan;
+    public ClanSpawnUpdateEvent(@NotNull ClanProfile clan,
+                                @Nullable Location oldLocation,
+                                @Nullable Location newLocation,
+                                @NotNull Action action,
+                                @NotNull CommandSender actor) {
+        this(clan, oldLocation, newLocation, action, actor, !Bukkit.isPrimaryThread());
+    }
+
+    public ClanSpawnUpdateEvent(@NotNull ClanProfile clan,
+                                @Nullable Location oldLocation,
+                                @Nullable Location newLocation,
+                                @NotNull Action action,
+                                @NotNull CommandSender actor,
+                                boolean asynchronous) {
+        super(asynchronous);
+        this.clan = Objects.requireNonNull(clan, "clan");
         this.oldLocation = oldLocation;
         this.newLocation = newLocation;
-        this.action = action;
-        this.sender = sender;
+        this.action = Objects.requireNonNull(action, "action");
+        this.actor = Objects.requireNonNull(actor, "actor");
     }
 
     public @NotNull ClanProfile getClan() {
@@ -48,9 +65,6 @@ public class ClanHomeUpdateEvent extends Event implements Cancellable {
         return newLocation;
     }
 
-    /**
-     * Replaces the proposed location. A {@code null} value deletes the home.
-     */
     public void setNewLocation(@Nullable Location newLocation) {
         this.newLocation = newLocation;
     }
@@ -59,8 +73,12 @@ public class ClanHomeUpdateEvent extends Event implements Cancellable {
         return action;
     }
 
-    public @NotNull CommandSender getSender() {
-        return sender;
+    public void setAction(@NotNull Action action) {
+        this.action = Objects.requireNonNull(action, "action");
+    }
+
+    public @NotNull CommandSender getActor() {
+        return actor;
     }
 
     @Override

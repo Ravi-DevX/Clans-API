@@ -21,7 +21,7 @@ public class ClanBankTransactionEvent extends Event implements Cancellable {
 
     private final Player player;
     private final ClanProfile clan;
-    private final double amount;
+    private double amount;
     private final TransactionType type;
     private boolean cancelled = false;
 
@@ -42,6 +42,18 @@ public class ClanBankTransactionEvent extends Event implements Cancellable {
 
     public double getAmount() {
         return amount;
+    }
+
+    /**
+     * Replaces the amount that will be deposited or withdrawn.
+     *
+     * @param amount finite amount greater than zero
+     */
+    public void setAmount(double amount) {
+        if (!Double.isFinite(amount) || amount <= 0.0D) {
+            throw new IllegalArgumentException("amount must be finite and greater than zero");
+        }
+        this.amount = amount;
     }
 
     public @NotNull TransactionType getTransactionType() {

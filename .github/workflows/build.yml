@@ -7,14 +7,19 @@ on:
   release:
     types: [ published ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
-      - name: Build
-        run: ./gradlew build --no-daemon --stacktrace
+          cache: gradle
+      - name: Build, verify compatibility, and generate Javadoc
+        run: ./gradlew verifyApiParity build javadoc --no-daemon --stacktrace

@@ -17,7 +17,7 @@ public class ClanHomeTeleportEvent extends Event implements Cancellable {
 
     private final Player player;
     private final ClanProfile clan;
-    private final Location homeLocation;
+    private Location homeLocation;
     private boolean cancelled = false;
 
     public ClanHomeTeleportEvent(@NotNull Player player, @NotNull ClanProfile clan, @NotNull Location homeLocation) {
@@ -36,6 +36,13 @@ public class ClanHomeTeleportEvent extends Event implements Cancellable {
 
     public @NotNull Location getHomeLocation() {
         return homeLocation;
+    }
+
+    /**
+     * Replaces the destination used by the pending teleport.
+     */
+    public void setHomeLocation(@NotNull Location homeLocation) {
+        this.homeLocation = java.util.Objects.requireNonNull(homeLocation, "homeLocation");
     }
 
     @Override

@@ -22,7 +22,10 @@ public interface RoleProfile {
     int getPriority();
 
     /**
-     * @return The set of permissions this role has
+     * <p>Treat the returned set as read-only. It may be a live view; copy it when a
+     * stable snapshot is required.</p>
+     *
+     * @return the permissions this role has
      */
     @NotNull Set<ClanPrivilege> getPermissions();
 

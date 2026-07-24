@@ -14,7 +14,7 @@ public class ClanCreateEvent extends Event implements Cancellable {
 
     private static final HandlerList HANDLER_LIST = new HandlerList();
     private final Player player;
-    private final String tag;
+    private String tag;
     private boolean cancelled;
 
     public ClanCreateEvent(@NotNull Player player, @NotNull String tag) {
@@ -29,6 +29,16 @@ public class ClanCreateEvent extends Event implements Cancellable {
 
     public @NotNull String getTag() {
         return tag;
+    }
+
+    /**
+     * Replaces the proposed clan tag before creation continues.
+     */
+    public void setTag(@NotNull String tag) {
+        if (tag.isBlank()) {
+            throw new IllegalArgumentException("tag must not be blank");
+        }
+        this.tag = tag;
     }
 
     @Override

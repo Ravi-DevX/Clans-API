@@ -1,5 +1,6 @@
 package com.shyamstudio.clans.api.model;
 
+import com.shyamstudio.clans.api.ClansAPI;
 import org.bukkit.Location;
 import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
@@ -11,11 +12,17 @@ import java.util.UUID;
 
 /**
  * Represents a clan within the system.
+ *
+ * <p>This interface is primarily a read model. Direct mutation methods remain for
+ * API 1.0.0 binary compatibility but bypass one or more validation, permission,
+ * event, limit, feature, or persistence rules.</p>
  */
 public interface ClanProfile {
 
     /**
-     * @return The clan's unique identifier (owner's UUID)
+     * @return The clan's unique, stable, immutable identifier (does not
+     *         necessarily equal the owner's UUID; it is preserved across
+     *         ownership transfers)
      */
     @NotNull UUID getClanId();
 
@@ -25,47 +32,76 @@ public interface ClanProfile {
     @NotNull LeaderProfile getOwner();
 
     /**
-     * @return The clan tag (short identifier, unique)
+     * @return The unique clan name/tag
      */
     @NotNull String getTag();
 
     /**
-     * Sets the clan tag.
+     * Sets the unique clan name/tag directly.
+     *
+     * @deprecated Use {@link ClansAPI#getClanService()} to rename a clan through
+     *             validated plugin rules.
      */
+    @Deprecated(since = "1.1.0")
     void setTag(@NotNull String tag);
 
     /**
-     * @return The clan display name, or null if not set
+     * Backwards-compatible alias for {@link #getTag()}.
+     *
+     * @return the non-null unique clan name/tag
      */
-    @Nullable String getName();
+    default @NotNull String getName() {
+        return getTag();
+    }
 
     /**
-     * @return The formatted display name (fallback to placeholder if null)
+     * @return The formatted clan name/tag for messages and menus
      */
     @NotNull String getDisplayName();
 
     /**
-     * Sets the clan display name.
+     * Backwards-compatible alias for {@link #setTag(String)}. Null and blank values
+     * are ignored to preserve the API 1.0.0 nullable call contract.
+     *
+     * @deprecated Use {@link ClansAPI#getClanService()} to rename a clan through
+     *             validated plugin rules.
      */
-    void setName(@Nullable String name);
+    @Deprecated(since = "1.1.0")
+    default void setName(@Nullable String name) {
+        if (name != null && !name.isBlank()) {
+            setTag(name);
+        }
+    }
 
     /**
-     * @return Members list (excluding owner)
+     * <p>Treat the returned list as read-only. It may be a live view; copy it when
+     * a stable snapshot is required.</p>
+     *
+     * @return members excluding the owner
      */
     @NotNull List<MemberProfile> getMemberList();
 
     /**
-     * @return All members including owner
+     * <p>Treat the returned list as read-only. Implementations may return either a
+     * snapshot or a live view.</p>
+     *
+     * @return all members including the owner
      */
     @NotNull List<MemberProfile> getAllMembers();
 
     /**
-     * @return List of allied clan UUIDs
+     * <p>Treat the returned list as read-only. It may be a live view; copy it when
+     * a stable snapshot is required.</p>
+     *
+     * @return allied clan UUIDs
      */
     @NotNull List<UUID> getAllyList();
 
     /**
-     * @return List of resolved allied ClanProfile objects (non-null only)
+     * <p>Treat the returned list and profiles as read-only. Implementations may
+     * return either a snapshot or a live view.</p>
+     *
+     * @return resolved, non-null allied clan profiles
      */
     @NotNull List<ClanProfile> getAllyClans();
 
@@ -75,8 +111,12 @@ public interface ClanProfile {
     @Nullable Location getHome();
 
     /**
-     * Sets the clan home.
+     * Sets the clan home directly.
+     *
+     * @deprecated Use {@link ClansAPI#getClanService()} so feature, permission,
+     *             event, and persistence rules are applied.
      */
+    @Deprecated(since = "1.1.0")
     void setHome(@Nullable Location home);
 
     /**
@@ -85,8 +125,12 @@ public interface ClanProfile {
     @Nullable String getDescription();
 
     /**
-     * Sets the clan description.
+     * Sets the clan description directly.
+     *
+     * @deprecated Use {@link ClansAPI#getClanService()} so validation, permission,
+     *             event, and persistence rules are applied.
      */
+    @Deprecated(since = "1.1.0")
     void setDescription(@Nullable String description);
 
     /**
@@ -95,12 +139,19 @@ public interface ClanProfile {
     @Nullable Location getSpawn();
 
     /**
-     * Sets the clan spawn location.
+     * Sets the clan spawn location directly.
+     *
+     * @deprecated Use {@link ClansAPI#getClanService()} so feature, permission,
+     *             event, and persistence rules are applied.
      */
+    @Deprecated(since = "1.1.0")
     void setSpawn(@Nullable Location spawn);
 
     /**
-     * @return The shared clan inventory (chest)
+     * <p>The returned Bukkit inventory is live and mutable. Mutating it directly
+     * bypasses feature, permission, event, and persistence rules.</p>
+     *
+     * @return the shared clan inventory
      */
     @NotNull Inventory getInventory();
 
@@ -110,8 +161,12 @@ public interface ClanProfile {
     boolean isFriendlyFire();
 
     /**
-     * Sets friendly fire.
+     * Sets friendly fire directly.
+     *
+     * @deprecated Use {@link ClansAPI#getClanService()} so permission, event, and
+     *             persistence rules are applied.
      */
+    @Deprecated(since = "1.1.0")
     void setFriendlyFire(boolean enabled);
 
     /**
@@ -120,8 +175,12 @@ public interface ClanProfile {
     boolean isOpen();
 
     /**
-     * Sets open/closed status.
+     * Sets open/closed membership status directly.
+     *
+     * @deprecated Use {@link ClansAPI#getClanService()} so permission, event, and
+     *             persistence rules are applied.
      */
+    @Deprecated(since = "1.1.0")
     void setOpen(boolean open);
 
     /**
@@ -130,8 +189,12 @@ public interface ClanProfile {
     double getScore();
 
     /**
-     * Updates the score cache.
+     * Updates the score cache directly.
+     *
+     * @deprecated Use validated plugin operations exposed through
+     *             {@link ClansAPI#getClanService()} instead of mutating model state.
      */
+    @Deprecated(since = "1.1.0")
     void updateScore(double score);
 
     /**
@@ -140,8 +203,12 @@ public interface ClanProfile {
     int getRank();
 
     /**
-     * Updates the rank cache.
+     * Updates the rank cache directly.
+     *
+     * @deprecated Use validated plugin operations exposed through
+     *             {@link ClansAPI#getClanService()} instead of mutating model state.
      */
+    @Deprecated(since = "1.1.0")
     void updateRank(int rank);
 
     /**
@@ -155,20 +222,32 @@ public interface ClanProfile {
     @Nullable String getBannerData();
 
     /**
-     * Sets the banner pattern data.
+     * Sets banner pattern data directly.
+     *
+     * @deprecated Use {@link ClansAPI#getClanService()} so feature, permission,
+     *             event, and persistence rules are applied.
      */
+    @Deprecated(since = "1.1.0")
     void setBannerData(@Nullable String bannerData);
 
     // ── Member Management ────────────────────────────────────
 
     /**
-     * Add a member to this clan.
+     * Adds a member directly.
+     *
+     * @deprecated Use {@link ClansAPI#getClanService()} so membership, capacity,
+     *             invitation, event, and persistence rules are applied.
      */
+    @Deprecated(since = "1.1.0")
     void addMember(@NotNull UserProfile user);
 
     /**
-     * Remove a member from this clan.
+     * Removes a member directly.
+     *
+     * @deprecated Use {@link ClansAPI#getClanService()} so membership, permission,
+     *             event, and persistence rules are applied.
      */
+    @Deprecated(since = "1.1.0")
     void removeMember(@NotNull UUID uuid);
 
     /**
@@ -188,8 +267,22 @@ public interface ClanProfile {
 
     // ── Alliance Management ──────────────────────────────────
 
+    /**
+     * Adds an alliance directly.
+     *
+     * @deprecated Use {@link ClansAPI#getClanService()} so request, limit, event,
+     *             and persistence rules are applied.
+     */
+    @Deprecated(since = "1.1.0")
     void addAlly(@NotNull ClanProfile clan);
 
+    /**
+     * Removes an alliance directly.
+     *
+     * @deprecated Use {@link ClansAPI#getClanService()} so permission, event, and
+     *             persistence rules are applied.
+     */
+    @Deprecated(since = "1.1.0")
     void removeAlly(@NotNull ClanProfile clan);
 
     boolean isAlliedWith(@NotNull ClanProfile clan);
@@ -197,15 +290,22 @@ public interface ClanProfile {
     // ── Inventory ────────────────────────────────────────────
 
     /**
-     * @return The inventory contents as a slot-to-item map
+     * <p>Treat the returned map and item stacks as read-only. Implementations may
+     * return either a snapshot or a live view.</p>
+     *
+     * @return the inventory contents as a slot-to-item map
      */
     @NotNull Map<Integer, org.bukkit.inventory.ItemStack> getInventoryAsMap();
 
     // ── Persistence ──────────────────────────────────────────
 
     /**
-     * Marks this clan as dirty and queues it for save.
+     * Marks this clan as dirty and queues it for save directly.
+     *
+     * @deprecated Use validated operations exposed through
+     *             {@link ClansAPI#getClanService()}, which manage persistence.
      */
+    @Deprecated(since = "1.1.0")
     void save();
 
     /**
@@ -214,8 +314,12 @@ public interface ClanProfile {
     boolean isClosed();
 
     /**
-     * Sets closed/deleted state.
+     * Sets closed/deleted state directly.
+     *
+     * @deprecated Use {@link ClansAPI#getClanService()} to disband a clan through
+     *             validated plugin rules.
      */
+    @Deprecated(since = "1.1.0")
     void setClosed(boolean closed);
 
     // ── Utilities ────────────────────────────────────────────
@@ -230,19 +334,31 @@ public interface ClanProfile {
     double getBalance();
 
     /**
-     * Sets the clan's bank balance
+     * Sets the clan's bank balance directly.
+     *
+     * @deprecated Use {@link ClansAPI#getClanService()} so economy, concurrency,
+     *             event, and persistence rules are applied.
      */
+    @Deprecated(since = "1.1.0")
     void setBalance(double balance);
 
     /**
      * Deposits money into the clan bank from the player's account.
+     *
      * @return true if deposit succeeded
+     * @deprecated Use {@link ClansAPI#getClanService()} for validated and
+     *             concurrency-safe bank operations.
      */
+    @Deprecated(since = "1.1.0")
     boolean deposit(@NotNull org.bukkit.entity.Player player, double amount);
 
     /**
      * Withdraws money from the clan bank and gives it to the player.
+     *
      * @return true if withdrawal succeeded
+     * @deprecated Use {@link ClansAPI#getClanService()} for validated and
+     *             concurrency-safe bank operations.
      */
+    @Deprecated(since = "1.1.0")
     boolean withdraw(@NotNull org.bukkit.entity.Player player, double amount);
 }

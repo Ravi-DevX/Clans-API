@@ -2,10 +2,12 @@ package com.shyamstudio.clans.api.event;
 
 import com.shyamstudio.clans.api.model.ClanProfile;
 import com.shyamstudio.clans.api.model.UserProfile;
+import org.bukkit.command.CommandSender;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Fired when a player joins a clan.
@@ -15,11 +17,22 @@ public class PlayerJoinClanEvent extends Event implements Cancellable {
     private static final HandlerList HANDLER_LIST = new HandlerList();
     private final UserProfile user;
     private final ClanProfile clan;
+    private final @Nullable CommandSender actor;
+    private final Reason reason;
     private boolean cancelled;
 
     public PlayerJoinClanEvent(@NotNull UserProfile user, @NotNull ClanProfile clan) {
+        this(user, clan, null, Reason.UNKNOWN);
+    }
+
+    public PlayerJoinClanEvent(@NotNull UserProfile user,
+                               @NotNull ClanProfile clan,
+                               @Nullable CommandSender actor,
+                               @NotNull Reason reason) {
         this.user = user;
         this.clan = clan;
+        this.actor = actor;
+        this.reason = reason;
         this.cancelled = false;
     }
 
@@ -29,6 +42,14 @@ public class PlayerJoinClanEvent extends Event implements Cancellable {
 
     public @NotNull ClanProfile getClan() {
         return clan;
+    }
+
+    public @Nullable CommandSender getActor() {
+        return actor;
+    }
+
+    public @NotNull Reason getReason() {
+        return reason;
     }
 
     @Override
@@ -48,5 +69,14 @@ public class PlayerJoinClanEvent extends Event implements Cancellable {
 
     public static @NotNull HandlerList getHandlerList() {
         return HANDLER_LIST;
+    }
+
+    public enum Reason {
+        OPEN_CLAN,
+        INVITE_ACCEPTED,
+        JOIN_REQUEST_ACCEPTED,
+        ADMIN,
+        API,
+        UNKNOWN
     }
 }
