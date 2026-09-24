@@ -57,14 +57,14 @@ public interface RoleProfile {
     }
 
     /**
-     * @return The hex color of this role (e.g. &#FFFFFF)
+     * @return The hex color of this role (for example, {@code &amp;#FFFFFF})
      */
     default @NotNull String getColor() {
         return "&#FFFFFF";
     }
 
     /**
-     * @return The color-formatted display name with the symbol prefix (e.g. &#FFAA00★ Co-Leader)
+     * @return The color-formatted display name with the symbol prefix
      */
     default @NotNull String getDisplayName() {
         String sym = getSymbol();

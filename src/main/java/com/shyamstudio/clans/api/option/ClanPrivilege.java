@@ -48,6 +48,9 @@ public enum ClanPrivilege {
     /** Edit the clan banner/flag */
     EDIT_FLAG,
 
+    /** Apply or claim a shield carrying the clan flag */
+    USE_CLAN_SHIELD,
+
     /** Accept join requests */
     ACCEPT_REQUESTS,
 

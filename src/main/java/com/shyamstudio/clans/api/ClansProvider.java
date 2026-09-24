@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class ClansProvider {
 
-    private static ClansAPI instance;
+    private static volatile ClansAPI instance;
 
     private ClansProvider() {
     }
@@ -44,7 +44,8 @@ public final class ClansProvider {
      * Registers the API implementation. Internal - called by the Clans plugin only.
      *
      * @param api the implementation instance
-     * @apiNote Not part of the public contract; do not call from consumer plugins.
+     * <p><strong>API note:</strong> Not part of the public contract; do not call from
+     * consumer plugins.</p>
      */
     public static void register(@NotNull ClansAPI api) {
         instance = api;
@@ -53,7 +54,8 @@ public final class ClansProvider {
     /**
      * Clears the registered API. Internal - called by the Clans plugin on disable.
      *
-     * @apiNote Not part of the public contract; do not call from consumer plugins.
+     * <p><strong>API note:</strong> Not part of the public contract; do not call from
+     * consumer plugins.</p>
      */
     public static void unregister() {
         instance = null;

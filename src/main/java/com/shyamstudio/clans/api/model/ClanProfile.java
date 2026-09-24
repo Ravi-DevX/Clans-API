@@ -22,7 +22,8 @@ public interface ClanProfile {
     /**
      * @return The clan's unique, stable, immutable identifier (does not
      *         necessarily equal the owner's UUID; it is preserved across
-     *         ownership transfers)
+     *         renames and ownership transfers). A disbanded clan no longer
+     *         exists, so a later clan must be treated as a new identity.
      */
     @NotNull UUID getClanId();
 

@@ -6,6 +6,7 @@ import com.shyamstudio.clans.api.option.ChatChannel;
 import com.shyamstudio.clans.api.option.ClanFeature;
 import com.shyamstudio.clans.api.service.ChatService;
 import com.shyamstudio.clans.api.service.ClanService;
+import com.shyamstudio.clans.api.service.ClansExtensionService;
 import com.shyamstudio.clans.api.service.PendingRequestService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -29,7 +30,10 @@ import java.util.UUID;
  *
  * <p>{@link #get()} throws {@link IllegalStateException} if the Clans plugin is not yet
  * enabled - list Clans under {@code depend} in your {@code plugin.yml} to guarantee load
- * order, or use {@code softdepend} and guard with {@link ClansProvider#isAvailable()}.</p>
+ * order, or use {@code softdepend} and guard with {@link ClansProvider#isAvailable()}.
+ * Because Clans completes licensed storage startup asynchronously, also check
+ * {@link #isReady()} or listen for {@link com.shyamstudio.clans.api.event.ClansReadyEvent}
+ * before gameplay queries and mutations.</p>
  *
  * @see ClansProvider
  */
@@ -72,6 +76,17 @@ public interface ClansAPI {
     }
 
     /**
+     * Checks whether the running Clans implementation has finished asynchronous
+     * startup and may serve gameplay queries and mutations.
+     *
+     * @return {@code true} only after Clans has published its ready event
+     * @since 1.2.0
+     */
+    default boolean isReady() {
+        return false;
+    }
+
+    /**
      * Checks whether a Clans feature is enabled on the running server.
      *
      * <p>Implementations compiled against API 1.0.0 default to enabled because
@@ -87,8 +102,9 @@ public interface ClansAPI {
 
     /**
      * Gets a clan by its unique ID. The ID is a stable, immutable identifier
-     * that does not change across ownership transfers; do not assume it equals
-     * the owner's UUID.
+     * that does not change across renames or ownership transfers; do not assume
+     * it equals the owner's UUID. A disbanded clan is deleted and must not be
+     * treated as the same identity as a later clan.
      *
      * @param clanId the clan's unique UUID
      * @return the clan, or {@code null} if not found
@@ -205,4 +221,24 @@ public interface ClansAPI {
     default @NotNull ClanService getClanService() {
         throw new UnsupportedOperationException("ClanService is not available in this Clans implementation");
     }
+
+    /**
+     * Gets the owner-scoped extension registry used by supported Clans addons.
+     *
+     * <p>Extensions registered through this service are collision checked and are
+     * removed automatically when their owning plugin disables.</p>
+     *
+     * <p>A consumer intentionally supporting a runtime whose API jar predates 1.2.0
+     * must check {@link #getApiVersion()} before linking this method; otherwise the JVM
+     * may report {@link NoSuchMethodError} before a default implementation can run.</p>
+     *
+     * @return the extension service
+     * @throws UnsupportedOperationException if the running implementation predates
+     *         this service
+     * @since 1.2.0
+     */
+    default @NotNull ClansExtensionService getExtensionService() {
+        throw new UnsupportedOperationException("ClansExtensionService is not available in this Clans implementation");
+    }
+
 }

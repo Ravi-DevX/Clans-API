@@ -12,5 +12,6 @@ public enum ClanFeature {
     CLAN_CHAT,
     ALLY_CHAT,
     CHAT_SHORTCUTS,
-    ANTI_ALT
+    ANTI_ALT,
+    CLAN_SHIELD
 }

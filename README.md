@@ -8,7 +8,7 @@ at runtime, so you never bundle this dependency into your jar.
 
 [![](https://jitpack.io/v/Ravi-DevX/Clans-API.svg)](https://jitpack.io/#Ravi-DevX/Clans-API)
 
-Current API contract version: **1.1.0** (`ApiVersion.CURRENT`).
+Current API contract version: **1.2.0** (`ApiVersion.CURRENT`).
 
 ---
 
@@ -27,7 +27,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("com.github.Ravi-DevX:Clans-API:1.1.0")
+    compileOnly("com.github.Ravi-DevX:Clans-API:1.2.0")
 }
 ```
 
@@ -39,7 +39,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'com.github.Ravi-DevX:Clans-API:1.1.0'
+    compileOnly 'com.github.Ravi-DevX:Clans-API:1.2.0'
 }
 ```
 
@@ -56,12 +56,12 @@ dependencies {
 <dependency>
     <groupId>com.github.Ravi-DevX</groupId>
     <artifactId>Clans-API</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
     <scope>provided</scope>
 </dependency>
 ```
 
-> Replace `1.1.0` with any released tag, or use a commit hash / `main-SNAPSHOT` for the
+> Replace `1.2.0` with any released tag, or use a commit hash / `main-SNAPSHOT` for the
 > latest build.
 
 ---
@@ -90,9 +90,10 @@ calling `ClansAPI.get()`.
 
 ## Obtaining the API
 
-`ClansAPI.get()` returns the instance registered by the running Clans plugin. It throws
-`IllegalStateException` if Clans has not enabled yet, so only call it after your plugin
-has enabled and Clans is present.
+`ClansAPI.get()` returns the instance registered by the running Clans plugin. With a hard
+dependency the provider is available when your addon enables, but licensed database
+startup may still be running. Check `api.isReady()` before gameplay calls or listen for
+`ClansReadyEvent` and finish initialization there.
 
 ```java
 import com.shyamstudio.clans.api.ClansAPI;
@@ -101,17 +102,18 @@ import com.shyamstudio.clans.api.model.ClanProfile;
 
 if (ClansProvider.isAvailable()) {
     ClansAPI api = ClansAPI.get();
-
-    ClanProfile clan = api.getClanByPlayer(player.getUniqueId());
-    if (clan != null) {
-        getLogger().info(player.getName() + " is in clan " + clan.getTag()
-                + " (rank #" + clan.getRank() + ", score " + clan.getScore() + ")");
+    if (api.isReady()) {
+        ClanProfile clan = api.getClanByPlayer(player.getUniqueId());
+        if (clan != null) {
+            getLogger().info(player.getName() + " is in clan " + clan.getTag());
+        }
     }
 }
 ```
 
-With `depend: [Clans]` the load order is guaranteed, so the `isAvailable()` guard is
-optional but still harmless. With `softdepend` it is required.
+With `depend: [Clans]` provider load order is guaranteed, so the `isAvailable()` guard is
+optional. Readiness is separate and must still be observed. With `softdepend`, both the
+provider guard and readiness handling are required.
 
 ---
 
@@ -179,6 +181,104 @@ Every service call returns an `OperationResult` carrying an `OperationStatus` an
 optional detail map (for example `limit` or `remainingSeconds`). See the
 [Services](https://github.com/Ravi-DevX/Clans-API/wiki/Services) and
 [Models-and-Threading](https://github.com/Ravi-DevX/Clans-API/wiki/Models-and-Threading) wiki pages.
+
+---
+
+## Addon extensions (1.2.0)
+
+API 1.2.0 adds an owner-scoped extension registry for supported `/clan` subcommands and
+Clans menu actions. Register through `ClansAPI#getExtensionService()`; do not intercept
+`PlayerCommandPreprocessEvent` or modify Bukkit's command map.
+
+```java
+import com.shyamstudio.clans.api.ClansAPI;
+import com.shyamstudio.clans.api.extension.ClanCommandContext;
+import com.shyamstudio.clans.api.extension.ClanSubcommand;
+import com.shyamstudio.clans.api.extension.ExtensionRegistration;
+import com.shyamstudio.clans.api.result.OperationResult;
+import com.shyamstudio.clans.api.service.ClansExtensionService;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+public final class MyAddon extends JavaPlugin {
+    private final List<ExtensionRegistration> registrations = new ArrayList<>();
+
+    @Override
+    public void onEnable() {
+        ClansAPI api = ClansAPI.get();
+        ClansExtensionService extensions = api.getExtensionService();
+
+        registrations.add(extensions.registerSubcommand(this, new ClanSubcommand() {
+            @Override public String name() { return "panel"; }
+            @Override public Set<String> aliases() { return Set.of("info"); }
+            @Override public String permission() { return "myaddon.panel"; }
+
+            @Override
+            public OperationResult execute(ClanCommandContext context) {
+                context.player().sendMessage("Opening the addon panel for /" + context.label());
+                return OperationResult.success();
+            }
+
+            @Override
+            public List<String> suggest(ClanCommandContext context) {
+                // Cache-only: never query SQL, Redis, HTTP, or the filesystem here.
+                return List.of("status", "list", "help");
+            }
+        }));
+
+        registrations.add(extensions.registerMenuAction(this, "OPEN_ADDON_PANEL", context -> {
+            context.player().sendMessage("Opening the addon panel for clan " + context.clanId());
+            return OperationResult.success();
+        }));
+    }
+
+    @Override
+    public void onDisable() {
+        registrations.forEach(ExtensionRegistration::unregister);
+        registrations.clear();
+    }
+}
+```
+
+Registrations belong to the addon `Plugin` passed at registration time. Clans removes
+them automatically when that plugin disables; keeping the handles and unregistering them
+yourself is still useful for partial startup rollback or a feature-level shutdown.
+`ExtensionRegistration#unregister()` is idempotent.
+
+The extension registry is available during Clans bootstrap, so registration itself does
+not require `isReady()`. Any addon initialization that queries clans or calls gameplay
+services must still wait for `ClansReadyEvent`; Clans does not dispatch `/clan` or menu
+actions before its runtime is ready.
+
+`ClanSubcommand#permission()` is a Bukkit permission checked by Clans before dispatch.
+Clan-role authorization is separate: addons should resolve the current `MemberProfile`
+and check their own feature-specific role or permission rule again at the operation
+boundary. Suggestions must be non-blocking and derived from memory/cache only.
+
+An action becomes available only when a Clans menu references that action ID. Registering
+an arbitrary action does not inject a new button; the menu configuration must already
+reference and dispatch the ID.
+
+Addon menus can return a player through the supported reverse-navigation API instead of
+dispatching `/clan` or reaching into Clans internals:
+
+```java
+boolean accepted = extensions.openClanMenu(player);
+```
+
+The method follows the normal `/clan` destination: clan members open their clan details
+and players without a clan open the clan list. Clans schedules the inventory operation on
+the player's owning thread, so `true` means accepted for scheduling. It returns `false`
+when Clans is not ready, the player is offline or lacks `clans.use`, or an older runtime
+does not implement reverse navigation. The interface method has a binary-compatible
+default implementation, allowing addons compiled against this 1.2 contract to detect
+unsupported runtimes safely.
+
+See [Extensions](https://github.com/Ravi-DevX/Clans-API/wiki/Extensions) for lifecycle,
+validation, context fields, privilege checks, and complete examples.
 
 ---
 
@@ -266,9 +366,9 @@ touching thread-confined Bukkit state, and call services from the main / owning 
 ### Entry points
 | Class | Purpose |
 |-------|---------|
-| `ClansAPI` | Main accessor - `ClansAPI.get()`; also exposes the three services |
+| `ClansAPI` | Main accessor - `ClansAPI.get()`; also exposes the public services |
 | `ClansProvider` | Holds the runtime instance - `isAvailable()` |
-| `ApiVersion` | Exposes `CURRENT` (the API contract version, `1.1.0`) |
+| `ApiVersion` | Exposes `CURRENT` (the API contract version, `1.2.0`) |
 
 ### Services (`com.shyamstudio.clans.api.service`)
 | Interface | Purpose |
@@ -276,6 +376,16 @@ touching thread-confined Bukkit state, and call services from the main / owning 
 | `ClanService` | Validated clan mutations (membership, alliances, settings, bank, ...) |
 | `ChatService` | Read and control clan / ally chat channels and delivery |
 | `PendingRequestService` | Read-only snapshots of pending invites and requests |
+| `ClansExtensionService` | Owner-scoped `/clan` subcommands and menu actions for addons |
+
+### Extensions (`com.shyamstudio.clans.api.extension`)
+| Type | Purpose |
+|------|---------|
+| `ClanSubcommand` | Addon-owned `/clan <name>` execution and non-blocking suggestions |
+| `ClanCommandContext` | Immutable player, label, subcommand, and argument input |
+| `ClanMenuAction` | Handler for a registered action referenced by a Clans menu |
+| `ClanMenuActionContext` | Immutable player, menu id, optional clan id, and attributes |
+| `ExtensionRegistration` | Idempotent registration handle with `unregister()` / `close()` |
 
 ### Models (`com.shyamstudio.clans.api.model`)
 | Type | Represents |
@@ -292,12 +402,13 @@ touching thread-confined Bukkit state, and call services from the main / owning 
 ### Options (`com.shyamstudio.clans.api.option`)
 | Enum | Values |
 |------|--------|
-| `ClanPrivilege` | Per-role permissions (INVITE_MEMBERS, KICK_MEMBERS, OPEN_VAULT, BANK_WITHDRAW, ...) |
+| `ClanPrivilege` | Per-role permissions, including `USE_CLAN_SHIELD` |
 | `ProfileMetric` | Tracked stats (KILLS, DEATHS, DIAMONDS_MINED, SCRAP_SMELTED, BLOCKS_PLACED, BLOCKS_BROKEN, MOBS_KILLED) |
 | `ChatChannel` | PUBLIC, CLAN, ALLY |
 | `ChatMessageSource` | TOGGLED_MODE, COMMAND, SHORTCUT, API |
 | `ChatModeChangeCause` | COMMAND, MENU, API, FEATURE_DISABLED, CLAN_LEFT, PLUGIN_RELOAD |
-| `ClanFeature` | HOME, SPAWN, CHEST, BANK, STATISTICS, SCORING, LEADERBOARD, CLAN_CHAT, ALLY_CHAT, CHAT_SHORTCUTS, ANTI_ALT |
+| `ClanFeature` | HOME, SPAWN, CHEST, BANK, STATISTICS, SCORING, LEADERBOARD, CLAN_CHAT, ALLY_CHAT, CHAT_SHORTCUTS, ANTI_ALT, CLAN_SHIELD |
+| `ClanShieldDeliveryMode` | APPLY_TO_HELD_SHIELD, GIVE_NEW_SHIELD |
 | `PendingAction` | SEND, CANCEL, ACCEPT, DENY, EXPIRE |
 | `StatisticChangeCause` | GAMEPLAY, ADMIN, API |
 
@@ -309,7 +420,7 @@ touching thread-confined Bukkit state, and call services from the main / owning 
 
 ### Events (`com.shyamstudio.clans.api.event`)
 See [Events](https://github.com/Ravi-DevX/Clans-API/wiki/Events) for the grouped list and cancellable / notification-only
-markers.
+markers. `ClanShieldApplyEvent` allows integrations to cancel delivery or replace the prepared shield before payment and inventory changes.
 
 ---
 
@@ -322,8 +433,10 @@ Full documentation lives in the [wiki](https://github.com/Ravi-DevX/Clans-API/wi
 - [Chat API](https://github.com/Ravi-DevX/Clans-API/wiki/Chat-API)
 - [Events](https://github.com/Ravi-DevX/Clans-API/wiki/Events)
 - [Services](https://github.com/Ravi-DevX/Clans-API/wiki/Services)
+- [Extensions](https://github.com/Ravi-DevX/Clans-API/wiki/Extensions)
 - [Models and Threading](https://github.com/Ravi-DevX/Clans-API/wiki/Models-and-Threading)
 - [Migration 1.0.0 to 1.1.0](https://github.com/Ravi-DevX/Clans-API/wiki/Migration-1.0.0-to-1.1.0)
+- [Migration 1.1.0 to 1.2.0](https://github.com/Ravi-DevX/Clans-API/wiki/Migration-1.1.0-to-1.2.0)
 
 ---
 
@@ -333,15 +446,19 @@ Full documentation lives in the [wiki](https://github.com/Ravi-DevX/Clans-API/wi
   (Leader = -1, Member = larger numbers). Use `RoleProfile#isHigherThan` rather than
   comparing numbers by hand.
 - `ClanProfile#getClanId` is a stable, immutable clan identifier. It does **not**
-  necessarily equal the owner's UUID and is preserved across ownership transfers.
+  necessarily equal the owner's UUID and is preserved across renames and ownership
+  transfers. A disbanded clan no longer exists; a later clan must be treated as a
+  new identity.
 - The API is read-oriented. Prefer the services from `ClansAPI` over the deprecated model
   setters so validation, permission, event, and persistence rules are applied.
 
 ## Versioning
 
 The API follows semantic versioning. Added methods -> minor bump; changed / removed
-methods -> major bump. Pin a specific tag in production. New 1.1.0 methods on `ClansAPI`
-are `default` methods, so implementations compiled against 1.0.0 stay binary compatible.
+methods -> major bump. Pin a specific tag in production. The service getters added in
+1.1.0 and the extension getter added in 1.2.0 are `default` methods,
+preserving binary compatibility with older implementations. A 1.2.0 consumer must still
+feature-detect newer services when it intentionally supports an older Clans runtime.
 
 ## License
 

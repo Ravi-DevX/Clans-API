@@ -4,7 +4,7 @@ package com.shyamstudio.clans.api;
 public final class ApiVersion {
 
     /** Current public API contract version. */
-    public static final String CURRENT = "1.1.0";
+    public static final String CURRENT = "1.2.0";
 
     private ApiVersion() {
     }
